@@ -6,6 +6,7 @@ from random import choices
 import datetime
 from collections import namedtuple
 
+COURSE_COUNT = 20
 
 def get_courses_list(count=20):
     resp = requests.get('https://www.coursera.org/sitemap~www~courses.xml')
@@ -21,7 +22,7 @@ def get_course_info(course_url):
     course_data = json.loads(
         bs.select_one('script[type="application/ld+json"]').get_text()
     )
-    name = course_data['@graph'][2]['name']
+    course_name = course_data['@graph'][2]['name']
     start_date = course_data['@graph'][2]['hasCourseInstance']['startDate']
     end_date = course_data['@graph'][2]['hasCourseInstance']['endDate']
     weeks_count = get_weeks_count(start_date, end_date)
@@ -31,7 +32,7 @@ def get_course_info(course_url):
         'course_info',
         'name language start_date weeks_count rating'
     )
-    return course_info(name, language, start_date, weeks_count, rating)
+    return course_info(course_name, language, start_date, weeks_count, rating)
 
 
 def get_weeks_count(start_date, end_date):
@@ -62,7 +63,7 @@ def main():
         for course_index, course_url in enumerate(get_courses_list(), start=1):
             print('Просмотрен {} из {}'.format(
                 course_index,
-                20
+                COURSE_COUNT
             ))
             courses_info.append(get_course_info(course_url))
         output_courses_info_to_xlsx('courses_info.xlsx', courses_info)
