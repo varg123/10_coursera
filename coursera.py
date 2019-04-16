@@ -8,6 +8,7 @@ from collections import namedtuple
 
 COURSE_COUNT = 20
 
+
 def get_courses_list(count=20):
     resp = requests.get('https://www.coursera.org/sitemap~www~courses.xml')
     bs = BeautifulSoup(resp.text, features='lxml')
@@ -22,6 +23,10 @@ def get_course_info(course_url):
     course_data = json.loads(
         bs.select_one('script[type="application/ld+json"]').get_text()
     )
+    return course_data
+
+
+def fetch_pretty_course_info(course_data):
     course_name = course_data['@graph'][2]['name']
     start_date = course_data['@graph'][2]['hasCourseInstance']['startDate']
     end_date = course_data['@graph'][2]['hasCourseInstance']['endDate']
@@ -41,10 +46,7 @@ def get_weeks_count(start_date, end_date):
     return round((end_date-start_date).days/7, ndigits=1)
 
 
-def output_courses_info_to_xlsx(filepath, courses_info):
-    book = openpyxl.Workbook()
-    courses_sheet = book.create_sheet(title='Данные с Coursera')
-    book.active = courses_sheet
+def output_courses_info_to_xlsx(courses_sheet, courses_info):
     courses_sheet.append([
         'Название',
         'Язык',
@@ -54,7 +56,6 @@ def output_courses_info_to_xlsx(filepath, courses_info):
     ])
     for course_info in courses_info:
         courses_sheet.append(course_info)
-    book.save(filepath)
 
 
 def main():
@@ -65,10 +66,15 @@ def main():
                 course_index,
                 COURSE_COUNT
             ))
-            courses_info.append(get_course_info(course_url))
-        output_courses_info_to_xlsx('courses_info.xlsx', courses_info)
+            course_data = get_course_info(course_url)
+            courses_info.append(fetch_pretty_course_info(course_data))
+        book = openpyxl.Workbook()
+        courses_sheet = book.create_sheet(title='Данные с Coursera')
+        book.active = courses_sheet
+        output_courses_info_to_xlsx(courses_sheet, courses_info)
+        book.save('courses_info.xlsx')
     except requests.exceptions.ConnectionError:
-        exit("Ошибка соединения")
+        exit('Ошибка соединения')
 
 
 if __name__ == '__main__':
